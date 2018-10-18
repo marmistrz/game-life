@@ -82,9 +82,11 @@ int main(int argc, char* argv[])
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    check_condition(procs_col * procs_row != size, "the process grid size doesn't match the number of processes!");
-    check_condition(plane_dimension % procs_col == 0, "the number of processes in a column should divide the plane dimension!");
-    check_condition(plane_dimension % procs_row == 0, "the number of processes in a row should divide the plane dimension!");
+    if (rank == 0) {
+        check_condition(procs_col * procs_row == size, "the process grid size doesn't match the number of processes!");
+        check_condition(plane_dimension % procs_col == 0, "the number of processes in a column should divide the plane dimension!");
+        check_condition(plane_dimension % procs_row == 0, "the number of processes in a row should divide the plane dimension!");
+    }
 
     size_t subplane_rowsize = static_cast<size_t>(plane_dimension / procs_row);
     size_t subplane_colsize = static_cast<size_t>(plane_dimension / procs_col);
