@@ -108,12 +108,13 @@ int main(int argc, char* argv[])
     size_t max_col = slice.cols() - 2;
     size_t max_row = slice.rows() - 2;
 
+    vector<MPI_Request> vec;
     for (int64_t step = 0; step < timesteps; ++step) {
+        vec.clear();
         if (rank == 0) {
             std::string s = date::format("[%T] ", std::chrono::system_clock::now());
             cout << s << "Step: t = " << step << endl;
         }
-        vector<MPI_Request> vec;
         MPI_Request req;
         for (size_t col = 1; col <= max_col; ++col) {
             MPI_Isend(&slice(1, col), 1, MPI_INT, proc_up, 0, MPI_COMM_WORLD, &req);
@@ -137,6 +138,27 @@ int main(int argc, char* argv[])
             MPI_Irecv(&slice(row, max_col + 1), 1, MPI_INT, proc_right, 0, MPI_COMM_WORLD, &req);
             vec.push_back(req);
         }
+        MPI_Waitall(static_cast<int>(vec.size()), vec.data(), nullptr);
+        vec.clear();
+
+        // Now we need to synchronize the corners
+        MPI_Isend(&slice(1, 0), 1, MPI_INT, proc_up, 0, MPI_COMM_WORLD, &req);
+        vec.push_back(req);
+        MPI_Isend(&slice(1, max_col + 1), 1, MPI_INT, proc_up, 0, MPI_COMM_WORLD, &req);
+        vec.push_back(req);
+        MPI_Isend(&slice(max_row, 0), 1, MPI_INT, proc_down, 0, MPI_COMM_WORLD, &req);
+        vec.push_back(req);
+        MPI_Isend(&slice(max_row, max_col + 1), 1, MPI_INT, proc_down, 0, MPI_COMM_WORLD, &req);
+        vec.push_back(req);
+
+        MPI_Irecv(&slice(0, 0), 1, MPI_INT, proc_up, 0, MPI_COMM_WORLD, &req);
+        vec.push_back(req);
+        MPI_Irecv(&slice(0, max_col + 1), 1, MPI_INT, proc_up, 0, MPI_COMM_WORLD, &req);
+        vec.push_back(req);
+        MPI_Irecv(&slice(max_row + 1, 0), 1, MPI_INT, proc_down, 0, MPI_COMM_WORLD, &req);
+        vec.push_back(req);
+        MPI_Irecv(&slice(max_row + 1, max_col + 1), 1, MPI_INT, proc_down, 0, MPI_COMM_WORLD, &req);
+        vec.push_back(req);
 
         MPI_Waitall(static_cast<int>(vec.size()), vec.data(), nullptr);
 
