@@ -1,5 +1,4 @@
 #include "date.h"
-#include <cassert>
 #include <cmath>
 #include <cstdlib>
 #include <mpi.h>
@@ -13,11 +12,9 @@ using namespace std;
 
 Matrix<int> compute_neighbors(const Matrix<int>& slice)
 {
-    if (slice(0,0) != 0) {abort ();};
     auto newslice = slice; // copy the orignal matrix, but we'll just discard the values
     size_t max_col = slice.rows() - 2;
     size_t max_row = slice.cols() - 2;
-
 
     for (size_t x = 1; x <= max_col; x++) // for each row
     {
@@ -49,10 +46,9 @@ void init_slice(Matrix<int>& slice, size_t offset_row, size_t offset_col)
     size_t max_row = slice.rows() - 2;
     size_t max_col = slice.cols() - 2;
 
-
     for (size_t row = 1; row <= max_row; ++row) {
         for (size_t col = 1; col <= max_col; ++col) {
-            seed_seq seed {offset_row + row, offset_col + col};
+            seed_seq seed { offset_row + row, offset_col + col };
             mt19937 gen(seed);
             int r = dist(gen);
             // cout << "(" << offset_row  << "+" << row << ", " << offset_col << "+" << col << ") <- " << r << endl;
@@ -62,13 +58,21 @@ void init_slice(Matrix<int>& slice, size_t offset_row, size_t offset_col)
     }
 }
 
+void check_condition(bool cond, const char* const msg)
+{
+    if (!cond) {
+        cerr << "Error: " << msg << "\n";
+        exit(1);
+    }
+}
+
 int main(int argc, char* argv[])
 {
     int size, rank;
     MPI_Init(&argc, &argv);
 
     if (argc != 5) {
-        cout << "Usage: " << argv[0] << " procs-row procs-col plane-dimension timesteps\n";
+        cerr << "Usage: " << argv[0] << " procs-row procs-col plane-dimension timesteps\n";
         return 1;
     }
     int64_t plane_dimension = atoll(argv[3]);
@@ -78,10 +82,9 @@ int main(int argc, char* argv[])
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    assert(procs_col * procs_row == size);
-
-    assert(plane_dimension % procs_col == 0);
-    assert(plane_dimension % procs_row == 0);
+    check_condition(procs_col * procs_row != size, "the process grid size doesn't match the number of processes!");
+    check_condition(plane_dimension % procs_col == 0, "the number of processes in a column should divide the plane dimension!");
+    check_condition(plane_dimension % procs_row == 0, "the number of processes in a row should divide the plane dimension!");
 
     size_t subplane_rowsize = static_cast<size_t>(plane_dimension / procs_row);
     size_t subplane_colsize = static_cast<size_t>(plane_dimension / procs_col);
