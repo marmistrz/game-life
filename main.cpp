@@ -13,13 +13,15 @@ using namespace std;
 
 Matrix<int> compute_neighbors(const Matrix<int>& slice)
 {
+    if (slice(0,0) != 0) {abort ();};
     auto newslice = slice; // copy the orignal matrix, but we'll just discard the values
-    size_t max_x = slice.rows() - 2;
-    size_t max_y = slice.cols() - 2;
+    size_t max_col = slice.rows() - 2;
+    size_t max_row = slice.cols() - 2;
 
-    for (size_t x = 1; x < max_x; x++) // for each row
+
+    for (size_t x = 1; x <= max_col; x++) // for each row
     {
-        for (size_t y = 1; y < max_y; y++) // for each column
+        for (size_t y = 1; y <= max_row; y++) // for each column
         {
             int sum = slice(x - 1, y - 1) + slice(x - 1, y) + slice(x - 1, y + 1) + slice(x, y + 1) + slice(x + 1, y + 1) + slice(x + 1, y) + slice(x + 1, y - 1) + slice(x, y - 1);
 
@@ -40,19 +42,22 @@ Matrix<int> compute_neighbors(const Matrix<int>& slice)
     return newslice;
 }
 
-void init_slice(Matrix<int>& slice, int rank)
+void init_slice(Matrix<int>& slice, size_t offset_row, size_t offset_col)
 {
-    default_random_engine gen(1337 + static_cast<unsigned int>(rank));
-    uniform_int_distribution<int> dist(0, 10);
+    uniform_int_distribution<int> dist(0, 6);
 
-    size_t max_x = slice.rows() - 2;
-    size_t max_y = slice.cols() - 2;
+    size_t max_row = slice.rows() - 2;
+    size_t max_col = slice.cols() - 2;
 
-    for (size_t x = 1; x <= max_x; ++x) {
-        for (size_t y = 1; y <= max_y; ++y) {
+
+    for (size_t row = 1; row <= max_row; ++row) {
+        for (size_t col = 1; col <= max_col; ++col) {
+            seed_seq seed {offset_row + row, offset_col + col};
+            mt19937 gen(seed);
             int r = dist(gen);
-            r = min(r, 1); // P(r = 0) = 1/10, P(r = 1) = 9/10
-            slice(x, y) = r;
+            // cout << "(" << offset_row  << "+" << row << ", " << offset_col << "+" << col << ") <- " << r << endl;
+            r = 1 - min(r, 1); // P(r = 0) = 3/4, P(r = 1) = 1/6
+            slice(row, col) = r;
         }
     }
 }
@@ -63,30 +68,37 @@ int main(int argc, char* argv[])
     MPI_Init(&argc, &argv);
 
     if (argc != 5) {
-        cout << "Usage: " << argv[0] << " plane-dimension procs-x procs-y timesteps\n";
+        cout << "Usage: " << argv[0] << " procs-row procs-col plane-dimension timesteps\n";
         return 1;
     }
-    int64_t plane_dimension = atoll(argv[1]);
-    int procs_x = static_cast<int>(atoll(argv[2]));
-    int procs_y = static_cast<int>(atoll(argv[3]));
+    int64_t plane_dimension = atoll(argv[3]);
+    int procs_row = static_cast<int>(atoll(argv[1]));
+    int procs_col = static_cast<int>(atoll(argv[2]));
     int64_t timesteps = atoll(argv[4]);
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    assert(procs_x * procs_y == size);
+    assert(procs_col * procs_row == size);
 
-    assert(plane_dimension % procs_x == 0);
-    assert(plane_dimension % procs_y == 0);
+    assert(plane_dimension % procs_col == 0);
+    assert(plane_dimension % procs_row == 0);
 
-    size_t subplane_x = static_cast<size_t>(plane_dimension / procs_x);
-    size_t subplane_y = static_cast<size_t>(plane_dimension / procs_x);
-    Matrix<int> slice(subplane_x + 2, subplane_y + 2);
-    init_slice(slice, rank);
+    size_t subplane_rowsize = static_cast<size_t>(plane_dimension / procs_row);
+    size_t subplane_colsize = static_cast<size_t>(plane_dimension / procs_col);
+    // the number of rows is the size of each column, the same for the number of rows
+    Matrix<int> slice(subplane_colsize + 2, subplane_rowsize + 2);
 
-    int proc_up = (rank < procs_x) ? MPI_PROC_NULL : rank - procs_x;
-    int proc_down = (rank + procs_x >= size) ? MPI_PROC_NULL : rank + procs_x;
-    int proc_left = (rank % procs_x == 0) ? MPI_PROC_NULL : rank - 1;
-    int proc_right = ((rank + 1) % procs_x == 0) ? MPI_PROC_NULL : rank + 1;
+    auto my_row = static_cast<size_t>(rank / procs_row);
+    auto my_col = static_cast<size_t>(rank % procs_row);
+
+    //cout << rank << ":" << my_row << " " << my_col << " " << subplane_rowsize << " " << subplane_colsize << endl;
+
+    init_slice(slice, my_row * subplane_colsize, my_col * subplane_rowsize);
+
+    int proc_up = (rank < procs_row) ? MPI_PROC_NULL : rank - procs_row;
+    int proc_down = (rank + procs_row >= size) ? MPI_PROC_NULL : rank + procs_row;
+    int proc_left = (rank % procs_row == 0) ? MPI_PROC_NULL : rank - 1;
+    int proc_right = ((rank + 1) % procs_row == 0) ? MPI_PROC_NULL : rank + 1;
 
     size_t max_col = slice.cols() - 2;
     size_t max_row = slice.rows() - 2;
