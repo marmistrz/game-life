@@ -109,6 +109,14 @@ int main(int argc, char* argv[])
     size_t max_row = slice.rows() - 2;
 
     vector<MPI_Request> vec;
+    auto start = std::chrono::high_resolution_clock::now();
+    if (rank == 0) {
+        {
+            std::string s = date::format("[%T] ", start);
+            cout << s << "Starting computation" << endl;
+        }
+    }
+
     for (int64_t step = 0; step < timesteps; ++step) {
         vec.clear();
         if (rank == 0) {
@@ -179,4 +187,12 @@ int main(int argc, char* argv[])
     }
 
     MPI_Finalize();
+    if (rank == 0) {
+        auto end = std::chrono::high_resolution_clock::now();
+        {
+            std::string s = date::format("[%T] ", end);
+            auto elapsed = chrono::duration_cast<chrono::seconds>(end - start);
+            cout << s << "Finished computation. Elapsed time: " << elapsed.count() << "s" << endl;
+        }
+    }
 }

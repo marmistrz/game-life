@@ -3,7 +3,7 @@ set -e
 set -o pipefail
 
 run() {
-   ./run.sh "$1" "$2" 360 5 --oversubscribe | sed '6q;d'
+   ./run.sh "$1" "$2" 360 5 --oversubscribe | sed '7q;d'
 }
 
 val=$(run 1 1)
