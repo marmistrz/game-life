@@ -41,19 +41,19 @@ Matrix<int> compute_neighbors(const Matrix<int>& slice)
 
 void init_slice(Matrix<int>& slice, size_t offset_row, size_t offset_col)
 {
-    uniform_int_distribution<int> dist(0, 6);
+    constexpr size_t MOD = 91;
 
     size_t max_row = slice.rows() - 2;
     size_t max_col = slice.cols() - 2;
 
     for (size_t row = 1; row <= max_row; ++row) {
         for (size_t col = 1; col <= max_col; ++col) {
-            seed_seq seed { offset_row + row, offset_col + col };
-            mt19937 gen(seed);
-            int r = dist(gen);
-            // cout << "(" << offset_row  << "+" << row << ", " << offset_col << "+" << col << ") <- " << r << endl;
-            r = 1 - min(r, 1); // P(r = 0) = 3/4, P(r = 1) = 1/6
-            slice(row, col) = r;
+            size_t real_row = offset_row + row;
+            size_t real_col = offset_col + col;
+            auto mr = real_row % MOD;
+            auto mc = real_col % MOD;
+            auto r = ((mr + 1) * (mr + mc)) % MOD;
+            slice(row, col) = static_cast<int>(r < 20);
         }
     }
 }
