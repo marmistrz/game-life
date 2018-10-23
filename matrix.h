@@ -7,8 +7,8 @@ template <typename T>
 class Matrix {
 public:
     Matrix(size_t rows, size_t cols);
-    T& operator()(size_t i, size_t j);
-    const T& operator()(size_t i, size_t j) const;
+    T& operator()(size_t row, size_t col);
+    const T& operator()(size_t row, size_t col) const;
     size_t cols() const { return mCols; }
     size_t rows() const { return mRows; }
 
@@ -33,9 +33,9 @@ T& Matrix<T>::operator()(size_t row, size_t col)
 }
 
 template <typename T>
-const T& Matrix<T>::operator()(size_t i, size_t j) const
+const T& Matrix<T>::operator()(size_t row, size_t col) const
 {
-    return mData[i * mCols + j];
+    return mData[row * mCols + col];
 }
 
 #endif // MATRIX_H
