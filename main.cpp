@@ -1,6 +1,7 @@
 #include "date.h"
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 #include <mpi.h>
 #include <random>
 #include <string>
