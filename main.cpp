@@ -196,4 +196,5 @@ int main(int argc, char* argv[])
             cout << s << "Finished computation. Elapsed time: " << elapsed.count() << "s" << endl;
         }
     }
+    return 0;
 }
