@@ -187,7 +187,6 @@ int main(int argc, char* argv[])
         cout << count_total << endl;
     }
 
-    MPI_Finalize();
     if (rank == 0) {
         auto end = std::chrono::high_resolution_clock::now();
         {
@@ -196,5 +195,6 @@ int main(int argc, char* argv[])
             cout << s << "Finished computation. Elapsed time: " << elapsed.count() << "s" << endl;
         }
     }
+    MPI_Finalize();
     return 0;
 }
