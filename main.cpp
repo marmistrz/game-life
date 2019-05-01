@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <filesystem>
 
 #include "matrix.h"
 
@@ -186,9 +187,10 @@ int main(int argc, char* argv[])
     MPI_Allreduce(&count, &count_total, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     if (rank == 0) {
         cout << count_total << endl;
-        ofstream output;
-        output.open ("game-life-output.txt");
-        output << count_total << "\n";
+        filesystem::create_directory("output");
+        ofstream outfile;
+        outfile.open("output/game-life-output.txt");
+        outfile << count_total << "\n";
     }
 
     if (rank == 0) {
